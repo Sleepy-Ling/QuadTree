@@ -5,6 +5,9 @@
 // Learn life-cycle callbacks:
 //  - https://docs.cocos.com/creator/2.4/manual/en/scripting/life-cycle-callbacks.html
 
+import AirWall from "../Game/AirWall";
+import { Bullet } from "../Game/Bullet";
+import GameObjectBase from "../Game/GameObjectBase";
 import Collider2dManager, { Collider2dManagerInitParam } from "./Collider2dManager";
 import { QuadTree, Rect } from "./QuadTree";
 
@@ -23,6 +26,7 @@ export default class QuadTreeExample extends cc.Component {
 
     protected collider2dManager: Collider2dManager;
 
+    protected objectList: GameObjectBase[] = [];
     start() {
         this.firstInitView();
         this.onViewOpen();
@@ -54,13 +58,23 @@ export default class QuadTreeExample extends cc.Component {
         let manager = new Collider2dManager();
         let p: Collider2dManagerInitParam = {
             bounds: new Rect(375, 812, 750, 1624),
-            maxObjects: 20,
+            maxObjects: 100,
             maxLevels: 10,
             level: 0,
             updateInterval: 0.1
         }
         manager.init(p);
         this.collider2dManager = manager;
+
+        this.collider2dManager.onGameStart();
+
+        let airWall = new AirWall();
+        airWall.init(new cc.Node());
+        airWall.node.setParent(this.node);
+
+        this.collider2dManager.addColliderInf(airWall);
+
+        this.objectList.push(airWall);
     }
 
 
@@ -78,6 +92,13 @@ export default class QuadTreeExample extends cc.Component {
         // }
 
         // this.plane.updatePlayerPos(dt);
+        for (const obj of this.objectList) {
+            obj.onGameUpdate(dt);
+        }
+
+        this.collider2dManager.onGameUpdate(dt);
+
+        this.draw();
     }
 
 
@@ -124,14 +145,47 @@ export default class QuadTreeExample extends cc.Component {
         }
     }
 
+
+    protected bulletCnt: number = 0;
     protected onClickKeyBoard(evt: cc.Event.EventKeyboard) {
 
         if (evt.keyCode == cc.macro.KEY.j) {
+            for (let i = 0; i < 10; i++) {
+                let bullet = new Bullet();
+                let node = new cc.Node();
+                bullet.init(node);
+                node.setParent(this.node);
+                bullet.setDestroyCall(this.removeBullet.bind(this));
+                this.collider2dManager.addColliderInf(bullet);
 
+                let dir = cc.v2(1, -1);
+                dir.rotateSelf(Math.random() * 360 * (2 * Math.PI) / 360);
 
+                bullet.setMoveDir(dir);
+                this.objectList.push(bullet);
+
+                this.bulletCnt++;
+            }
         }
 
     }
 
+    protected removeBullet(bullet: Bullet) {
+        this.collider2dManager.markColliderValid(bullet, false);
+        // this.collider2dManager.removeColliderInf(bullet);
+        // bullet.node.destroy();
 
+        // this.objectList = this.objectList.filter((v) => {
+        //     return v != bullet;
+        // })
+
+        this.bulletCnt--;
+    }
+
+    protected logCollider() {
+        // console.log(this.collider2dManager.getTree().insertTimes);
+
+        console.log("bulletCnt", this.bulletCnt);
+
+    }
 }

@@ -58,7 +58,7 @@
     "_groupIndex": 0,
     "groupIndex": 0,
     "autoReleaseAssets": false,
-    "_id": "4fURws72ZIrbzMVVV7noEX"
+    "_id": "f4ee58b2-e2af-48ac-a1ff-e32432e28b53"
   },
   {
     "__type__": "cc.Node",
@@ -713,7 +713,7 @@
     },
     "component": "",
     "_componentId": "ede90M9nx5Mna83hxe8TG+M",
-    "handler": "draw",
+    "handler": "logCollider",
     "customEventData": ""
   },
   {

@@ -247,6 +247,7 @@ export interface DynamicQuadTreeObject {
 
     getCollisionMask: () => number;
     getCollisionGroup: () => number;
+    getIsValid: () => boolean;
 }
 
 export class DynamicQuadTree {
@@ -255,6 +256,7 @@ export class DynamicQuadTree {
     private level: number;
     bounds: Rect;
     private objects: Set<DynamicQuadTreeObject>;
+    /**四个象限 */
     private nodes: DynamicQuadTree[];
     parent: DynamicQuadTree | null;
 
@@ -315,48 +317,64 @@ export class DynamicQuadTree {
         return -1;
     }
 
-    insert(obj: DynamicQuadTreeObject): boolean {
+    insert(insert_obj: DynamicQuadTreeObject): boolean {
         if (this.nodes.length) {
-            const index = this.getIndex(obj.bounds);
+            const index = this.getIndex(insert_obj.bounds);
             if (index !== -1) {
-                return this.nodes[index].insert(obj);
+                return this.nodes[index].insert(insert_obj);
             }
         }
 
         if (this.level < this.maxLevels) {
             if (this.objects.size < this.maxObjects) {
-                this.objects.add(obj);
-                obj.quadTreeNode = this;
+                this.objects.add(insert_obj);
+                insert_obj.quadTreeNode = this;
+
+
                 return true;
             }
             else {
                 //当前层数存储的对象过多，要分裂成4个象限
                 this.split();
                 //重新分布该层对象
-                const itor = this.objects.values();
-                let next = itor.next();
+                const objects = Array.from(this.objects);
 
-                while (!next.done) {
-                    let obj = next.value as DynamicQuadTreeObject;
-                    let idx = this.getIndex(obj.bounds);
+                for (let i = objects.length - 1; i >= 0; i--) {
+                    const element = objects[i];
+
+                    let idx = this.getIndex(element.bounds);
                     if (idx != -1) {
-                        this.nodes[idx].insert(obj);
-                    }
+                        this.remove(element);
 
-                    next = itor.next();
+                        this.nodes[idx].insert(element);
+                    }
                 }
 
-                const index = this.getIndex(obj.bounds);
+                // const itor = this.objects.values();
+                // let next = itor.next();
+
+                // while (!next.done) {
+                //     let obj = next.value as DynamicQuadTreeObject;
+                //     let idx = this.getIndex(obj.bounds);
+                //     if (idx != -1) {
+                //         this.nodes[idx].insert(obj);
+                //     }
+
+                //     next = itor.next();
+                // }
+
+                const index = this.getIndex(insert_obj.bounds);
 
                 if (index !== -1) {
-                    return this.nodes[index].insert(obj);
+                    return this.nodes[index].insert(insert_obj);
                 }
 
             }
         }
         else if (this.objects.size < this.maxObjects) {
-            this.objects.add(obj);
-            obj.quadTreeNode = this;
+            this.objects.add(insert_obj);
+            insert_obj.quadTreeNode = this;
+
             return true;
         }
 
@@ -367,6 +385,8 @@ export class DynamicQuadTree {
         if (this.objects.has(obj)) {
             this.objects.delete(obj);
             obj.quadTreeNode = null;
+
+
             return true;
         }
 
@@ -518,6 +538,14 @@ function intersects(rect1: Rect, rect2: Rect): boolean {
 
 /**是否能发生碰撞 */
 function canMakeCollide(obj_1: DynamicQuadTreeObject, obj_2: DynamicQuadTreeObject) {
+    // if (!obj_1.getIsValid()) {
+    //     return false;
+    // }
+
+    // if (!obj_2.getIsValid()) {
+    //     return false;
+    // }
+
     const group_1 = obj_1.getCollisionGroup();
     const group_2 = obj_2.getCollisionGroup();
 
